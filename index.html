@@ -1,0 +1,230 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>24/7 Browser</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      background: #0b0e14;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .toolbar {
+      background: #1e2430;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      border-bottom: 1px solid #2f3747;
+      flex-wrap: wrap;
+      z-index: 10;
+    }
+    .brand {
+      color: #b7c9e2;
+      font-weight: 600;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .brand span {
+      background: #2d7aff;
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 12px;
+      border-radius: 30px;
+    }
+    .url-box {
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      background: #0f141c;
+      border-radius: 40px;
+      border: 1px solid #384256;
+      align-items: center;
+      padding: 0 8px 0 18px;
+      transition: border 0.15s;
+    }
+    .url-box:focus-within {
+      border-color: #5b7cfa;
+      box-shadow: 0 0 0 2px rgba(45, 122, 255, 0.25);
+    }
+    .url-box input {
+      background: transparent;
+      border: none;
+      padding: 12px 6px 12px 0;
+      color: #eaf0fc;
+      font-size: 0.95rem;
+      width: 100%;
+      outline: none;
+    }
+    .url-box input::placeholder {
+      color: #6a7a92;
+    }
+    .url-box button {
+      background: #2d7aff;
+      border: none;
+      color: white;
+      font-weight: 600;
+      padding: 8px 20px;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.15s;
+      white-space: nowrap;
+      margin: 4px 0;
+    }
+    .url-box button:hover {
+      background: #4b8aff;
+      transform: scale(1.02);
+    }
+    .url-box button:active {
+      background: #1a5fd9;
+      transform: scale(0.96);
+    }
+    .hint {
+      color: #7c8aa3;
+      font-size: 0.75rem;
+      background: #151d29;
+      padding: 4px 14px;
+      border-radius: 30px;
+      border: 1px solid #2a3444;
+      white-space: nowrap;
+    }
+    .iframe-wrap {
+      flex: 1;
+      background: #0b0e14;
+      position: relative;
+    }
+    .iframe-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+    .loading-badge {
+      position: absolute;
+      bottom: 20px;
+      right: 24px;
+      background: #1a212ecc;
+      backdrop-filter: blur(4px);
+      color: #b7c9e2;
+      padding: 6px 18px;
+      border-radius: 60px;
+      font-size: 0.8rem;
+      border: 1px solid #2f3a4e;
+      pointer-events: none;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <div class="brand">
+      🧭 24/7 <span>always on</span>
+    </div>
+    <div class="url-box">
+      <input type="text" id="urlInput" placeholder="Type URL … e.g. example.com" spellcheck="false" />
+      <button id="goBtn">↗ Open</button>
+    </div>
+    <div class="hint">⏳ stays loaded</div>
+  </div>
+
+  <div class="iframe-wrap">
+    <iframe id="browserFrame" src="about:blank" loading="eager"></iframe>
+    <div class="loading-badge" id="statusBadge">🌐 ready</div>
+  </div>
+
+  <script>
+    (function() {
+      const frame = document.getElementById('browserFrame');
+      const input = document.getElementById('urlInput');
+      const goBtn = document.getElementById('goBtn');
+      const badge = document.getElementById('statusBadge');
+
+      // Helper: ensure url has protocol
+      function normalizeUrl(raw) {
+        let trimmed = raw.trim();
+        if (!trimmed) return null;
+        // if no protocol, add https://
+        if (!/^https?:\/\//i.test(trimmed)) {
+          trimmed = 'https://' + trimmed;
+        }
+        return trimmed;
+      }
+
+      function navigateTo(url) {
+        const normalized = normalizeUrl(url);
+        if (!normalized) {
+          badge.textContent = '⚠️ enter a URL';
+          badge.style.color = '#f0a0a0';
+          return;
+        }
+        // show loading status
+        badge.textContent = '⏳ loading …';
+        badge.style.color = '#b7c9e2';
+        frame.src = normalized;
+
+        // optional: update input with normalized url
+        input.value = normalized;
+      }
+
+      // event listeners
+      goBtn.addEventListener('click', function() {
+        navigateTo(input.value);
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          navigateTo(input.value);
+        }
+      });
+
+      // when iframe loads, update badge
+      frame.addEventListener('load', function() {
+        try {
+          // try to get the final url (if same origin) or just show "loaded"
+          const finalUrl = frame.contentWindow?.location?.href || frame.src;
+          if (finalUrl && finalUrl !== 'about:blank') {
+            badge.textContent = '✅ ' + finalUrl;
+          } else {
+            badge.textContent = '✅ loaded';
+          }
+          badge.style.color = '#8bc34a';
+        } catch (_) {
+          // cross-origin: can't read location, show generic
+          badge.textContent = '✅ site loaded (cross-origin)';
+          badge.style.color = '#8bc34a';
+        }
+      });
+
+      // if frame fails to load (optional)
+      frame.addEventListener('error', function() {
+        badge.textContent = '❌ failed to load';
+        badge.style.color = '#f0a0a0';
+      });
+
+      // initial hint
+      badge.textContent = '🌐 enter URL and press ↵';
+      badge.style.color = '#b7c9e2';
+
+      // (optional) example: prefill with a safe default
+      // input.value = 'example.com';
+    })();
+  </script>
+</body>
+</html>
